@@ -81,4 +81,8 @@ To measure performance:
 3. Test with different buffer sizes (e.g., 100, 1000, 10000) and report average latency and duplicate detection rates.
 4. Simulate different stream velocities and measure system performance under various loads.
 
+## Data
+1. I used a combination of crypto-related Reddit posts from Kaggle and also synthetic data generated from open-source models to get more robust data to work with
+2. I chose this type of data because I found it more relevant to simulate the actual use case of the position
+
 
