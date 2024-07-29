@@ -122,8 +122,6 @@ class SemanticDeduper:
             raise
 
     def _remove_from_index(self, embedding):
-        # This is a simple implementation and might not be the most efficient for large indices
-        # For production use, consider using Faiss's remove functionality or rebuilding the index periodically
         D, I = self.index.search(embedding.reshape(1, -1), self.index.ntotal)
         if D[0][0] > 0.9999:  # Threshold for considering it the same vector
             self.index.remove_ids(np.array([I[0][0]]))
