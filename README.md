@@ -1,88 +1,162 @@
-# NascentTA
-Repo for Nascent technical assignment
 
-# Semantic Sentence De-duper for Streaming Data
+# Semantic Sentence De-duplication for Streaming Data
 
-## Approach and Design Decisions
+## Overview
 
-This system aims to implement a scalable semantic sentence de-duplication solution for streaming data. Key design decisions include:
+This project implements a **scalable, real-time semantic sentence de-duplication system** for streaming text data. It is designed to handle **high-throughput streams** where identifying **semantically similar sentences** quickly and efficiently is critical. The system is optimized for **low-latency performance**, **memory efficiency**, and **streaming scalability**, making it suitable for production-level streaming applications.
 
-1. Use of SentenceTransformer for semantic encoding: This efficiently converts sentences into semantic embeddings.
-2. Faiss for similarity search: Provides fast and efficient similarity comparisons, important for maintaining low latency.
-3. FIFO buffer implementation: So that the system can handle a continuous stream of data while maintaining a fixed buffer size.
-4. Asynchronous processing: Allows for efficient data stream handling and potential spikes in activity.
-5. Configurable parameters: Enables easy tuning of the system for different use cases and performance requirements.
+---
 
-## Handling Different Buffer Sizes
+## Core Design & Approach
 
-The system uses a deque with a configurable maximum length for the buffer. When the buffer reaches its maximum size, the oldest sentences are removed to make room for new ones (FIFO principle). The Faiss index is updated accordingly to maintain consistency with the buffer.
+Key components and design decisions:
 
-Performance characteristics for different buffer sizes:
-- Small buffers (tens to hundreds): Fast processing, but may miss some semantic duplicates over a longer time frame (would need improvement for production).
-- Medium buffers (thousands): Good balance between processing speed and duplicate detection over time.
-- Large buffers (tens of thousands): More comprehensive duplicate detection, but may impact processing speed and memory usage.
+1. **Sentence Encoding with SentenceTransformer**  
+   Utilizes pre-trained transformer models to convert sentences into dense semantic embeddings.
 
-## Assumptions about the Incoming Stream
+2. **Fast Similarity Search with Faiss**  
+   Faiss enables rapid similarity comparisons, crucial for real-time performance.
 
-1. The stream consists of text sentences in a single language (English in this implementation).
-2. Sentences may contain emojis and special characters which is important to domain-specific crypto data.
-3. The stream has varying intervals between messages (1ms to 1s) with occasional spikes in activity.
-4. The incoming data is generally well-formed, but the system includes error handling for robustness (thinking with production in mind).
+3. **FIFO Buffer with Deque**  
+   Maintains a fixed-size sliding window of recent sentence embeddings for efficient streaming processing.
 
-## Potential Optimizations for Scaling
+4. **Asynchronous Processing with Asyncio**  
+   Ensures non-blocking, concurrent handling of incoming sentences and similarity checks.
 
-1. Distributed processing: Implement a distributed version using technologies like Apache Kafka for message queuing and multiple worker nodes for processing.
-2. GPU acceleration: Utilize GPU for sentence encoding and similarity computations.
-3. Optimized index updates: Implement more efficient strategies for updating the Faiss index, such as batch updates or periodic rebuilding.
-4. Caching: Implement a caching layer for frequently seen or processed sentences.
-5. Database integration: For very large scale operations, consider integrating a distributed database for storing and querying embeddings.
+5. **Configurable Parameters**  
+   Allows for flexible tuning (e.g., buffer size, similarity threshold) to adapt to different application needs.
 
-## Balancing Accuracy and Processing Speed
+---
 
-The system balances accuracy and speed through:
-1. Configurable similarity threshold: Allows tuning the trade-off between detecting more potential duplicates and processing speed.
-2. Efficient similarity search with Faiss: Provides fast similarity computations even for large datasets.
-3. Batch processing: Allows for efficient processing of multiple sentences at once, improving throughput.
-4. Asynchronous operations: Enables the system to handle incoming sentences without blocking.
+## Buffer Management & Trade-offs
 
-## Integration into a Larger Streaming Data System
+The system uses a **deque with a maximum length** as a sliding buffer. When full, the oldest entries are removed (FIFO logic), and the **Faiss index is updated accordingly**.
 
-This component can be integrated into a larger streaming data system as follows:
+### Buffer Size Considerations:
+- **Small Buffers (10s–100s):**  
+  High speed, lower memory, may miss duplicates over time.
+  
+- **Medium Buffers (1,000s):**  
+  Good trade-off between duplicate detection and speed.
 
-1. Message Queue Integration: Use Apache Kafka or RabbitMQ to feed sentences into the de-duper.
-2. Microservices Architecture: Deploy the de-duper as a microservice in a containerized environment (e.g., Kubernetes).
-3. API Gateway: Implement an API gateway for routing requests and load balancing.
-4. Monitoring and Logging: Integrate with systems like Prometheus and ELK stack for monitoring and log analysis.
-5. Output Stream: Implement an output stream for processed sentences, potentially using another message queue.
+- **Large Buffers (10,000+):**  
+  High duplicate catch rate, increased memory and processing overhead.
 
-## Runtime Parameter Changes
+---
 
-While not implemented in this version, runtime parameter changes could be handled by:
-1. Implementing a configuration service that the de-duper periodically checks for updates.
-2. Using a message-based system to signal configuration changes to the de-duper.
-3. Implementing a "hot reload" mechanism that can update parameters without restarting the service.
+## Streaming Assumptions
 
-## Dataset and Stream Simulation
+- **Input Language:** English (can be extended).
+- **Special Characters:** Emojis and domain-specific characters (e.g., hashtags) are preserved.
+- **Stream Timing:** Variable input intervals (1ms to 1s) with potential bursts.
+- **Robustness:** Handles occasional malformed inputs with graceful error handling.
 
-For this implementation, we used [describe your dataset here]. The stream was simulated using Python's asyncio library, with random wait times between sentences to mimic real-world conditions. The simulation includes occasional "spikes" of activity with shorter wait times.
+---
 
-Preprocessing steps include:
-1. Lowercasing
-2. Removing punctuation while preserving emojis and hashtags
-3. Tokenization
-4. Removing stop words
-5. Stemming (except for emojis and hashtags to account for crypto-specific context)
+## Scaling & Optimization Ideas
+
+1. **Distributed Architecture:**  
+   Integrate with tools like **Apache Kafka** and **distributed processing frameworks** for scaling across nodes.
+
+2. **GPU Acceleration:**  
+   Use GPUs for **faster embedding generation** and similarity computation.
+
+3. **Efficient Faiss Updates:**  
+   Explore **batch index updates** or **periodic index rebuilding** for performance.
+
+4. **Caching Layer:**  
+   Cache frequently processed sentences to avoid redundant computations.
+
+5. **Persistent Storage:**  
+   Incorporate **distributed databases** for long-term storage and querying of embeddings at scale.
+
+---
+
+## Balancing Accuracy vs. Speed
+
+- **Similarity Threshold (Configurable):**  
+  Tuning this adjusts sensitivity to duplicates and affects processing speed.
+
+- **Faiss Search Efficiency:**  
+  Enables fast nearest-neighbor search over large datasets.
+
+- **Batch Processing Support:**  
+  Processes multiple inputs at once for better throughput.
+
+- **Asynchronous Design:**  
+  Ensures smooth performance during spikes in streaming data.
+
+---
+
+## Integration Possibilities
+
+Designed to be easily integrated into larger systems:
+1. **Message Queue Input:**  
+   Compatible with **Kafka, RabbitMQ**, etc., for input streams.
+
+2. **Microservice Deployment:**  
+   Container-ready (Docker/Kubernetes) for deployment as a service.
+
+3. **API Gateway Compatibility:**  
+   Can be exposed via RESTful endpoints for flexible access.
+
+4. **Monitoring:**  
+   Supports integration with **Prometheus, ELK stack**, etc.
+
+5. **Output Streams:**  
+   Processed sentences can be emitted to a queue or database for downstream tasks.
+
+---
+
+## Runtime Flexibility (Future Work)
+
+Potential for **live parameter updates** via:
+- Config services (e.g., Consul, etcd)
+- Messaging signals for dynamic reconfiguration
+- Hot-reload mechanisms for real-time parameter changes
+
+---
+
+## Dataset & Stream Simulation
+
+- **Data Used:**  
+  Combination of **crypto-related Reddit posts (from Kaggle)** and **synthetic data** generated using open-source language models.
+
+- **Why Crypto Data?**  
+  Crypto-specific language often includes **emojis, hashtags, and domain-specific slang**, making it ideal to test semantic similarity robustness.
+
+- **Simulation:**  
+  Built using **Python’s asyncio** with variable sleep intervals (mimicking real-world stream activity). Included simulated **bursts** for stress testing.
+
+- **Preprocessing Steps:**
+  1. Lowercasing
+  2. Emoji & hashtag preservation
+  3. Punctuation removal (except emojis/hashtags)
+  4. Tokenization
+  5. Stop word removal
+  6. Stemming (emojis/hashtags excluded)
+
+---
 
 ## Performance Testing
 
-To measure performance:
-1. Implement timing decorators on key methods to measure processing time.
-2. Log latency for each processed sentence and calculate moving averages.
-3. Test with different buffer sizes (e.g., 100, 1000, 10000) and report average latency and duplicate detection rates.
-4. Simulate different stream velocities and measure system performance under various loads.
+Performance was evaluated using:
+1. **Timing Decorators:**  
+   To log processing latency per sentence.
 
-## Data
-1. I used a combination of crypto-related Reddit posts from Kaggle and also synthetic data generated from open-source models to get more robust data to work with
-2. I chose this type of data because I found it more relevant to simulate the actual use case of the position
+2. **Moving Averages:**  
+   For real-time performance tracking.
 
+3. **Buffer Size Tests:**  
+   Benchmarked at sizes 100, 1,000, 10,000+.
 
+4. **Stream Load Simulations:**  
+   Tested under varying input velocities to gauge system resilience.
+
+---
+
+## Project Purpose
+
+This project was developed as a **portfolio piece** to showcase **stream processing, NLP, and scalable system design**. It highlights real-time **semantic analysis**, efficient **similarity search**, and **production-oriented architecture** for handling streaming text data.
+
+---
